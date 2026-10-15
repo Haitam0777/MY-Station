@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1626">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Ma Station</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- En-tête : logo, navigation, heure -->
+  <header class="app-header">
+    <a class="brand" href="#station" aria-label="Ma Station, accueil">
+      <span class="brand-logo" aria-hidden="true">M</span>
+      <span class="brand-text">
+        <strong>Ma Station</strong>
+        <small id="subtitle">Suivi du métro en temps réel</small>
+      </span>
+    </a>
+
+    <nav class="tabs" aria-label="Vues">
+      <a href="#station" class="tab" data-view="station">Station</a>
+      <a href="#itineraire" class="tab" data-view="itinerary">Itinéraire</a>
+      <a href="#reglages" class="tab" data-view="settings">Réglages</a>
+    </nav>
+
+    <div class="load-bar" aria-hidden="true"></div>
+
+    <div class="header-right">
+      <div class="weather" id="weather" title="Météo à la station">
+        <span id="weather-icon"></span>
+        <span id="weather-temp"></span>
+      </div>
+      <div class="clock">
+        <time id="clock">--:--</time>
+        <small id="date"></small>
+      </div>
+      <button type="button" class="icon-btn" id="sound" aria-label="Alertes sonores" aria-pressed="true"></button>
+      <button type="button" class="icon-btn" id="fullscreen" aria-label="Plein écran" title="Plein écran">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Vue Station -->
+  <main class="view view-station" id="station" data-view="station">
+    <section class="col-main">
+      <!-- Trajets favoris : un toucher pour basculer -->
+      <div class="favs" id="favs"></div>
+
+      <!-- Info trafic des lignes de la station -->
+      <section class="traffic" id="traffic" aria-live="polite"></section>
+
+      <!-- Ligne + direction -->
+      <div class="hero">
+        <button type="button" class="hero-badges" id="hero-badges" title="Changer de ligne">
+          <span class="mode-badge" id="mode-badge">M</span>
+          <span class="line-badge" id="line-badge">C</span>
+        </button>
+        <div class="hero-text">
+          <button type="button" class="link-btn" id="direction-btn" title="Choisir les destinations">
+            <span class="muted">Direction</span>
+            <strong id="direction">—</strong>
+          </button>
+          <p class="hero-next"><span id="hero-noun">Prochain train</span> dans <strong id="hero-minutes">–</strong></p>
+        </div>
+      </div>
+
+      <!-- Schéma de la ligne -->
+      <div class="strip" id="strip" aria-label="Schéma de la ligne"></div>
+
+      <!-- Afficheur de quai : quand partir -->
+      <div class="platform">
+        <div class="platform-sign">
+          <span class="platform-station" id="platform-station">—</span>
+          <span class="platform-status" id="status"></span>
+        </div>
+        <div class="platform-body">
+          <div class="platform-main">
+            <p class="platform-label">Partir dans</p>
+            <p class="countdown" id="countdown"><span class="cd-min">–</span></p>
+          </div>
+          <dl class="platform-facts">
+            <div><dt>Partez à</dt><dd id="fact-leave">–</dd></div>
+            <div><dt>Départ</dt><dd id="fact-depart">–</dd></div>
+            <div><dt>Trajet</dt><dd id="fact-walk">–</dd></div>
+          </dl>
+        </div>
+        <p class="platform-advice" id="advice">Chargement…</p>
+      </div>
+
+      <!-- Stations à quelques minutes à pied du point de départ -->
+      <section class="card nearby">
+        <div class="nearby-head">
+          <div>
+            <h2 class="card-title">Stations à proximité <span class="spinner" aria-hidden="true"></span></h2>
+            <p class="muted" id="nearby-sub">dans un rayon de 500 m</p>
+          </div>
+          <label class="radius-slider">
+            <span>Rayon <output id="radius-live">500 m</output></span>
+            <input type="range" id="radius-range" min="100" max="3000" step="100" value="500" aria-label="Rayon de recherche des stations">
+            <span class="radius-scale"><span>100 m</span><span>3 km</span></span>
+          </label>
+        </div>
+        <div class="nearby-cats" id="nearby-list"></div>
+      </section>
+    </section>
+
+    <aside class="col-side">
+      <section class="card">
+        <h2 class="card-title" id="departures-title">Prochains trains</h2>
+        <ul class="departures" id="departures"></ul>
+      </section>
+
+      <section class="card next-card">
+        <div class="next-head">
+          <span class="train-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M9 17l-2 4M15 17l2 4"/><circle cx="9" cy="14" r=".6"/><circle cx="15" cy="14" r=".6"/></svg>
+          </span>
+          <div>
+            <p class="muted" id="next-title">Votre train</p>
+            <p class="next-dest" id="next-dest">—</p>
+            <p class="next-badges" id="next-badges"></p>
+          </div>
+          <p class="next-min" id="next-min"></p>
+        </div>
+        <div class="progress" aria-hidden="true">
+          <div class="progress-fill" id="progress-fill"></div>
+          <span class="progress-train" id="progress-train">
+            <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M9 17l-2 4M15 17l2 4"/></svg>
+          </span>
+        </div>
+        <p class="next-info" id="next-info"></p>
+        <p class="next-alert" id="next-alert" hidden></p>
+      </section>
+
+      <section class="card footer-card">
+        <button type="button" class="footer-station" id="station-btn" title="Changer de station">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+          <span>
+            <strong id="station-name">—</strong>
+            <small id="station-sub"></small>
+          </span>
+        </button>
+        <a class="footer-map" href="#reglages">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+          <span>Adresse<br>de départ</span>
+          <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </a>
+      </section>
+
+      <!-- Réglages : dans la colonne de droite (#reglages) -->
+      <section class="card settings-panel" id="reglages">
+        <h2 class="card-title">Réglages</h2>
+
+        <div class="setting-block">
+          <h3>Point de départ</h3>
+          <div class="segmented" role="radiogroup" aria-label="Point de départ">
+            <label><input type="radio" name="origin" value="gps"> Position GPS</label>
+            <label><input type="radio" name="origin" value="address"> Adresse</label>
+          </div>
+          <div class="address-box" id="address-box">
+            <input type="search" class="text-input" id="address-input" placeholder="ex : 12 rue de la Paix, Gennevilliers" autocomplete="off" aria-label="Adresse de départ">
+            <ul class="suggestions" id="address-suggestions"></ul>
+            <p class="saved-address" id="saved-address"></p>
+          </div>
+          <p class="walk-result" id="walk-result"></p>
+        </div>
+
+        <div class="setting-block setting-row">
+          <span>
+            <h3>Marge de sécurité</h3>
+            <small class="muted">Ajoutée au temps de marche</small>
+          </span>
+          <div class="stepper">
+            <button type="button" id="margin-minus" aria-label="Moins une minute">−</button>
+            <output id="margin-value">0 min</output>
+            <button type="button" id="margin-plus" aria-label="Plus une minute">+</button>
+          </div>
+        </div>
+
+        <div class="setting-block setting-row">
+          <span>
+            <h3>Rayon des stations</h3>
+            <small class="muted">À vol d'oiseau, jusqu'à 3 km</small>
+          </span>
+          <div class="stepper">
+            <button type="button" id="radius-minus" aria-label="Moins 100 mètres">−</button>
+            <output id="radius-value">500 m</output>
+            <button type="button" id="radius-plus" aria-label="Plus 100 mètres">+</button>
+          </div>
+        </div>
+
+        <div class="setting-block">
+          <h3>Trajets favoris</h3>
+          <small class="muted">Avec des horaires, le trajet s'active tout seul à ce moment-là.</small>
+          <ul class="fav-settings" id="fav-settings"></ul>
+          <label class="check-row">
+            <input type="checkbox" id="auto-routine">
+            <span>Changer de trajet automatiquement selon l'heure</span>
+          </label>
+        </div>
+
+        <div class="setting-block">
+          <h3>Alertes sonores</h3>
+          <small class="muted">Bips dans les 50 dernières secondes, sirène au moment de partir</small>
+          <div class="segmented" role="radiogroup" aria-label="Alertes sonores">
+            <label><input type="radio" name="sound" value="on"> Activées</label>
+            <label><input type="radio" name="sound" value="off"> Coupées</label>
+          </div>
+          <label class="radius-slider volume-slider">
+            <span>Volume <output id="volume-value">70 %</output></span>
+            <input type="range" id="volume-range" min="0" max="100" step="5" value="70" aria-label="Volume des alertes">
+            <span class="radius-scale"><span>🔈</span><span>🔊</span></span>
+          </label>
+        </div>
+      </section>
+    </aside>
+  </main>
+  <!-- Page Itinéraire (#itineraire) -->
+  <main class="view view-itinerary" id="itineraire" data-view="itinerary" hidden>
+    <section class="card it-search">
+      <h1 class="card-title">Itinéraire</h1>
+
+      <form id="it-form" autocomplete="off">
+        <div class="it-places">
+          <div class="it-field">
+            <span class="it-dot from" aria-hidden="true"></span>
+            <input type="search" class="text-input" id="it-from" placeholder="Départ : adresse, station, lieu…" aria-label="Départ">
+            <ul class="it-suggest" id="it-from-suggest"></ul>
+          </div>
+          <button type="button" class="it-swap" id="it-swap" aria-label="Inverser départ et arrivée" title="Inverser">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v16M7 4L3 8M7 4l4 4M17 20V4M17 20l-4-4M17 20l4-4"/></svg>
+          </button>
+          <div class="it-field">
+            <span class="it-dot to" aria-hidden="true"></span>
+            <input type="search" class="text-input" id="it-to" placeholder="Arrivée : adresse, station, lieu…" aria-label="Arrivée">
+            <ul class="it-suggest" id="it-to-suggest"></ul>
+          </div>
+        </div>
+        <div class="it-quick" id="it-quick"></div>
+
+        <div class="it-when">
+          <div class="segmented small" role="radiogroup" aria-label="Horaire">
+            <label><input type="radio" name="it-represents" value="departure" checked> Partir à</label>
+            <label><input type="radio" name="it-represents" value="arrival"> Arriver à</label>
+          </div>
+          <input type="datetime-local" class="text-input" id="it-datetime" aria-label="Date et heure">
+          <button type="button" class="link-small" id="it-now">Maintenant</button>
+        </div>
+
+        <details class="it-options">
+          <summary>Options</summary>
+          <fieldset>
+            <legend>Transports</legend>
+            <label class="check-row"><input type="checkbox" name="it-mode" value="metro" checked> Métro</label>
+            <label class="check-row"><input type="checkbox" name="it-mode" value="rail" checked> RER / Train</label>
+            <label class="check-row"><input type="checkbox" name="it-mode" value="tram" checked> Tram</label>
+            <label class="check-row"><input type="checkbox" name="it-mode" value="bus" checked> Bus</label>
+          </fieldset>
+          <fieldset>
+            <legend>Marche</legend>
+            <label class="check-row"><input type="checkbox" id="it-less-walk"> Moins de marche (10 min max. jusqu'aux arrêts)</label>
+            <label class="check-row">Rythme
+              <select class="text-input" id="it-pace">
+                <option value="slow_walker">Lent</option>
+                <option value="standard" selected>Normal</option>
+                <option value="fast_walker">Rapide</option>
+              </select>
+            </label>
+            <label class="check-row"><input type="checkbox" id="it-wheelchair"> Accessible en fauteuil roulant</label>
+          </fieldset>
+        </details>
+
+        <button type="submit" class="btn it-go">Rechercher</button>
+      </form>
+
+      <div class="it-recent" id="it-recent"></div>
+    </section>
+
+    <section class="it-results" id="it-results" aria-live="polite">
+      <div class="it-empty">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 6H15a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h6.5"/></svg>
+        <p>Choisissez un départ et une arrivée pour voir les trajets.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Petit message temporaire (trajet activé, enregistré…) -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- Choix station / ligne / destinations -->
+  <div class="picker" id="picker" hidden>
+    <div class="picker-box" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+      <header>
+        <h2 id="picker-title">Changer de station</h2>
+        <button type="button" id="picker-close" aria-label="Fermer">×</button>
+      </header>
+      <input type="search" id="picker-search" placeholder="Nom de la station…" autocomplete="off">
+      <ul id="picker-list"></ul>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    // En local seulement : clé PRIM de test (config.local.js, jamais publié)
+    if (/^(localhost|127\.|192\.168\.|10\.)/.test(location.hostname)) {
+      document.write('<script src="config.local.js"><\/script>');
+    }
+  </script>
+  <script src="lines.js"></script>
+  <script src="script.js"></script>
+  <script src="itinerary.js"></script>
+</body>
+</html>

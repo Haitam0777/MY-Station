@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "include": ["/api/*", "/config.local.js", "/.dev.vars"],
+  "exclude": []
+}
